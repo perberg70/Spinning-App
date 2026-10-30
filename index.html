@@ -540,19 +540,15 @@
     <div id="countdownText"></div>
   </div>
 
-  <div id="timelineScale" aria-label="Borg RPI scale from 0 to 20">
-    <span class="scale-title">Borg RPI</span>
-    <span class="scale-mark" style="bottom:100%">20</span>
-    <span class="scale-mark" style="bottom:90%">18</span>
-    <span class="scale-mark" style="bottom:80%">16</span>
-    <span class="scale-mark" style="bottom:70%">14</span>
-    <span class="scale-mark" style="bottom:60%">12</span>
-    <span class="scale-mark" style="bottom:50%">10</span>
-    <span class="scale-mark" style="bottom:40%">8</span>
-    <span class="scale-mark" style="bottom:30%">6</span>
-    <span class="scale-mark" style="bottom:20%">4</span>
-    <span class="scale-mark" style="bottom:10%">2</span>
-    <span class="scale-mark" style="bottom:0">0</span>
+  <div id="timelineScale" aria-label="FRP (%) scale from 0 to 150">
+    <span class="scale-title">FRP (%)</span>
+    <span class="scale-mark" style="bottom:100%">150</span>
+    <span class="scale-mark" style="bottom:83.33333333333334%">125</span>
+    <span class="scale-mark" style="bottom:66.66666666666666%">100</span>
+    <span class="scale-mark" style="bottom:50%">75</span>
+    <span class="scale-mark" style="bottom:33.33333333333333%">50</span>
+    <span class="scale-mark" style="bottom:16.666666666666664%">25</span>
+    <span class="scale-mark" style="bottom:0%">0</span>
   </div>
   <div id="timelineContainer"></div>
 
@@ -833,8 +829,8 @@
         bar.style.flexGrow = seg.time;
         let intensity = seg.intensity;
         if (typeof intensity !== 'number' || isNaN(intensity)) intensity = 0;
-        intensity = Math.max(0, Math.min(20, intensity));
-        bar.style.height = `${intensity * 5}%`;
+        intensity = Math.max(0, Math.min(150, intensity));
+        bar.style.height = `${(intensity / 150) * 100}%`;
         if (intensity === 0) {
           bar.style.border = "none";
           bar.style.background = "transparent";
