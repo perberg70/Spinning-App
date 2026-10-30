@@ -416,9 +416,9 @@
 
     #timelineScale {
       position: fixed;
-      left: calc(20% - 38px);
+      left: calc(20% - 100px);
       bottom: 20px;
-      width: 38px;
+      width: 100px;
       height: 190.625px;
       z-index: 18;
       pointer-events: none;
@@ -429,15 +429,28 @@
 
     #timelineScale .scale-title {
       position: absolute;
-      bottom: calc(100% + 4px);
+      bottom: calc(100% + 30px);
       left: 0;
       white-space: nowrap;
     }
 
     #timelineScale .scale-mark {
       position: absolute;
+      font-size: 50px;
+      font-weight: 700;
+      line-height: 1;
       right: 4px;
       transform: translateY(50%);
+    }
+
+    #timelineScale .scale-mark:last-child {
+      transform: none;
+    }
+
+    @media (max-width: 900px) {
+      #timelineScale .scale-mark {
+        font-size: 40px;
+      }
     }
 
     .timeline-bar {
@@ -545,11 +558,8 @@
   <div id="timelineScale" aria-label="FTP (%) scale from 0 to 150">
     <span class="scale-title">FTP (%)</span>
     <span class="scale-mark" style="bottom:100%">150</span>
-    <span class="scale-mark" style="bottom:83.33333333333334%">125</span>
     <span class="scale-mark" style="bottom:66.66666666666666%">100</span>
-    <span class="scale-mark" style="bottom:50%">75</span>
     <span class="scale-mark" style="bottom:33.33333333333333%">50</span>
-    <span class="scale-mark" style="bottom:16.666666666666664%">25</span>
     <span class="scale-mark" style="bottom:0%">0</span>
   </div>
   <div id="timelineContainer"></div>
