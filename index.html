@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Spinning Session Timer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #00e0ff;
+      --primary-dark: #008ba3;
+      --bg-dark: #050811;
+      --text-light: #f9fbff;
+      --accent: #ff4081;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-light);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+      min-height: 100vh;
+      width: 100%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      transition: background-image 0.4s ease-out;
+    }
+
+    #topBar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.2));
+      z-index: 20;
+      font-size: 14px;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    #topBar.hidden {
+      transform: translateY(-100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #topBar label {
+      font-weight: 600;
+      margin-right: 4px;
+    }
+
+    #fileInput {
+      color: var(--text-light);
+    }
+
+    #toggleControlsBtn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: var(--text-light);
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 25;
+      transition: background 0.2s, transform 0.1s;
+      font-size: 20px;
+    }
+
+    #toggleControlsBtn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.1);
+    }
+
+    #toggleControlsBtn.visible {
+      display: flex;
+    }
+
+    .btn {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.5);
+      color: var(--text-light);
+      cursor: pointer;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    #statusText {
+      margin-left: auto;
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    #timerContainer {
+      position: fixed;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      text-align: center;
+      z-index: 10;
+    }
+
+    #timerOuter {
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      filter: drop-shadow(0 0 20px rgba(0, 224, 255, 0.9));
+    }
+
+    #timerPie {
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      background: conic-gradient(var(--primary) 0deg, rgba(255, 255, 255, 0.08) 0deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    #timerPie::before {
+      content: "";
+      position: absolute;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), transparent 60%);
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.9);
+    }
+
+    #timeDisplay {
+      position: relative;
+      font-size: 40px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      z-index: 2;
+      text-shadow: 0 0 20px rgba(0, 0, 0, 0.9);
+    }
+
+    #segmentInfo {
+      font-size: 40px;
+      font-weight: 600;
+      text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+      max-width: 800px;
+    }
+
+    #segmentProgress {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    #nextActivity {
+      margin-top: 8px;
+      font-size: 24px;
+      font-weight: 500;
+      color: var(--primary);
+      opacity: 0.8;
+      text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+    }
+
+    #metronomeContainer {
+      position: fixed;
+      left: 180px;
+      bottom: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      z-index: 15;
+    }
+
+    #metronomeVisual {
+      width: 180px;
+      height: 340px;
+      position: relative;
+      overflow: visible;
+    }
+
+    #metronomeBody {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      width: 240px;
+      height: 300px;
+      transform: translateX(-50%);
+      clip-path: polygon(50% 0%, 100% 92%, 0% 92%);
+      background: linear-gradient(180deg, #4a3b2b 0%, #2a2118 55%, #17110c 100%);
+      box-shadow: 0 0 25px rgba(0, 0, 0, 0.9), inset 0 0 10px rgba(0, 0, 0, 0.7);
+    }
+
+    #metronomeScale {
+      position: absolute;
+      top: 75px;
+      left: 50%;
+      width: 18px;
+      height: 195px;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #e0e0e0 0%, #bbbbbb 100%);
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.6), inset 0 0 3px rgba(0, 0, 0, 0.4);
+    }
+
+    #metronomeArm {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      width: 5px;
+      height: 240px;
+      background: #ddd;
+      transform-origin: bottom center;
+      transform: translateX(-50%) rotate(24deg);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+      border-radius: 3px;
+    }
+
+    #metronomeWeight {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      width: 22px;
+      height: 30px;
+      transform: translateX(-50%);
+      border-radius: 4px;
+      background: linear-gradient(180deg, #f5f5f5 0%, #cfcfcf 100%);
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.7), inset 0 0 3px rgba(255, 255, 255, 0.8);
+    }
+
+    #metronomePivot {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: #111;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.9);
+    }
+
+    #rpmLabel {
+      font-size: 24px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      opacity: 0.85;
+      margin-top: 6px;
+    }
+
+    #rpmValue {
+      font-size: 48px;
+      font-weight: 700;
+    }
+
+    #backgroundOverlay {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 50% 20%, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.8));
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    #bgVideo {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    #bgYouTube {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      border: none;
+      pointer-events: none;
+    }
+
+    #bgPexels {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      border: none;
+      pointer-events: none;
+    }
+
+    @media (max-width: 900px) {
+      #timerOuter {
+        width: 220px;
+        height: 220px;
+      }
+
+      #timerPie {
+        width: 205px;
+        height: 205px;
+      }
+
+      #timeDisplay {
+        font-size: 32px;
+      }
+
+      #segmentInfo {
+        font-size: 16px;
+      }
+    }
+
+    #countdownOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    #countdownOverlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    #countdownText {
+      font-size: 180px;
+      font-weight: 800;
+      color: var(--primary);
+      text-shadow: 0 0 40px var(--primary);
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.8);
+        opacity: 0.5;
+      }
+
+      50% {
+        transform: scale(1.1);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    #timelineContainer {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 172.5px;
+      display: flex;
+      align-items: flex-end;
+      padding: 0 20px 20px 20px;
+      gap: 4px;
+      z-index: 18;
+      pointer-events: none;
+    }
+
+    #timelineScale {
+      position: fixed;
+      left: calc(20% - 38px);
+      bottom: 20px;
+      width: 38px;
+      height: 152.5px;
+      z-index: 18;
+      pointer-events: none;
+      font-size: 11px;
+      font-weight: 600;
+      text-shadow: 0 1px 4px #000;
+    }
+
+    #timelineScale .scale-title {
+      position: absolute;
+      bottom: calc(100% + 4px);
+      left: 0;
+      white-space: nowrap;
+    }
+
+    #timelineScale .scale-mark {
+      position: absolute;
+      right: 4px;
+      transform: translateY(50%);
+    }
+
+    .timeline-bar {
+      position: relative;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-bottom: none;
+      border-radius: 4px 4px 0 0;
+      overflow: hidden;
+      min-width: 4px;
+      transition: opacity 0.5s, border-width 0.3s, border-color 0.3s;
+    }
+
+    .timeline-bar-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--primary);
+      opacity: 0.6;
+      box-shadow: 0 0 10px var(--primary);
+      transition: height 0.1s linear;
+    }
+
+    .timeline-bar.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 15px rgba(255, 64, 129, 0.3);
+    }
+
+    .timeline-bar.active .timeline-bar-fill {
+      background: var(--accent);
+      opacity: 0.8;
+      box-shadow: 0 0 15px var(--accent);
+    }
+  </style>
+</head>
+
+<body>
+  <button id="toggleControlsBtn" title="Show Controls (Press C)">⚙</button>
+
+  <div id="topBar">
+    <div>
+      <label for="fileInput">Excel file:</label>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
+    </div>
+
+    <button id="startBtn" class="btn" disabled>Start</button>
+    <button id="pauseBtn" class="btn" disabled>Pause</button>
+    <button id="resetBtn" class="btn" disabled>Reset</button>
+
+    <div id="statusText">Load Excel with columns: Time, Activity, RPM, Background</div>
+
+    <div
+      style="display:flex; align-items:center; gap:8px; margin-left:16px; border-left:1px solid rgba(255,255,255,0.2); padding-left:16px;">
+      <label for="startDelay">Delay:</label>
+      <select id="startDelay"
+        style="background:rgba(0,0,0,0.5); color:var(--text-light); border:1px solid rgba(255,255,255,0.2); padding:4px; border-radius:4px;">
+        <option value="0">None</option>
+        <option value="3">3s</option>
+        <option value="5" selected>5s</option>
+        <option value="10">10s</option>
+      </select>
+      <a href="https://fitnessplayer.io" target="_blank" class="btn" style="text-decoration:none; line-height:1.2;">Open
+        Player</a>
+    </div>
+  </div>
+
+  <div id="timerContainer">
+    <div id="timerOuter">
+      <div id="timerPie">
+        <div id="timeDisplay">00:00</div>
+      </div>
+    </div>
+    <div id="segmentInfo">Waiting for session data…</div>
+    <div id="nextActivity"></div>
+    <div id="segmentProgress"></div>
+  </div>
+
+  <div id="metronomeContainer">
+    <div id="metronomeVisual">
+      <div id="metronomeBody">
+        <div id="metronomeScale"></div>
+      </div>
+      <div id="metronomeArm">
+        <div id="metronomeWeight"></div>
+      </div>
+      <div id="metronomePivot"></div>
+    </div>
+    <div id="rpmLabel">RPM</div>
+    <div id="rpmValue">–</div>
+  </div>
+
+  <video id="bgVideo" loop muted playsinline></video>
+  <iframe id="bgYouTube" allow="autoplay; accelerometer; gyroscope; picture-in-picture; encrypted-media"
+    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen title="Background Video"></iframe>
+  <iframe id="bgPexels" allow="autoplay; accelerometer; gyroscope; picture-in-picture; encrypted-media"
+    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen title="Pexels Background Video"></iframe>
+  <div id="backgroundOverlay"></div>
+
+  <div id="countdownOverlay">
+    <div id="countdownText"></div>
+  </div>
+
+  <div id="timelineScale" aria-label="Borg RPI scale from 0 to 20">
+    <span class="scale-title">Borg RPI</span>
+    <span class="scale-mark" style="bottom:100%">20</span>
+    <span class="scale-mark" style="bottom:90%">18</span>
+    <span class="scale-mark" style="bottom:80%">16</span>
+    <span class="scale-mark" style="bottom:70%">14</span>
+    <span class="scale-mark" style="bottom:60%">12</span>
+    <span class="scale-mark" style="bottom:50%">10</span>
+    <span class="scale-mark" style="bottom:40%">8</span>
+    <span class="scale-mark" style="bottom:30%">6</span>
+    <span class="scale-mark" style="bottom:20%">4</span>
+    <span class="scale-mark" style="bottom:10%">2</span>
+    <span class="scale-mark" style="bottom:0">0</span>
+  </div>
+  <div id="timelineContainer"></div>
+
+  <script>
+    let segments = [];
+    let currentIndex = 0;
+    let segmentStartTime = null;
+    let segmentDuration = 0;
+    let timerInterval = null;
+    let metronomeInterval = null;
+    let isRunning = false;
+    let pausedTime = null;
+
+    const fileInput = document.getElementById("fileInput");
+    const startBtn = document.getElementById("startBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const statusText = document.getElementById("statusText");
+    const startDelaySelect = document.getElementById("startDelay");
+    const countdownOverlay = document.getElementById("countdownOverlay");
+    const countdownText = document.getElementById("countdownText");
+    const timelineContainer = document.getElementById("timelineContainer");
+    const timerPie = document.getElementById("timerPie");
+    const timeDisplay = document.getElementById("timeDisplay");
+    const segmentInfo = document.getElementById("segmentInfo");
+    const nextActivity = document.getElementById("nextActivity");
+    const segmentProgress = document.getElementById("segmentProgress");
+    const rpmValue = document.getElementById("rpmValue");
+    const metronomeArm = document.getElementById("metronomeArm");
+    const toggleControlsBtn = document.getElementById("toggleControlsBtn");
+    const topBar = document.getElementById("topBar");
+    let metronomeSide = -1;
+
+    // Control panel visibility toggle
+    function toggleControls() {
+      const isHidden = topBar.classList.toggle("hidden");
+      toggleControlsBtn.classList.toggle("visible", isHidden);
+      localStorage.setItem("controlsHidden", isHidden ? "true" : "false");
+    }
+
+    // Restore controls visibility state on load
+    if (localStorage.getItem("controlsHidden") === "true") {
+      topBar.classList.add("hidden");
+      toggleControlsBtn.classList.add("visible");
+    }
+
+    // Keyboard shortcut: Press 'C' to toggle controls
+    document.addEventListener("keydown", (e) => {
+      if (e.key.toLowerCase() === "c" && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        // Ignore if typing in an input field
+        if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+        toggleControls();
+      }
+    });
+
+    // Button click to show controls
+    toggleControlsBtn.addEventListener("click", toggleControls);
+
+    function formatTime(seconds) {
+      const s = Math.max(0, Math.floor(seconds));
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return String(m).padStart(2, "0") + ":" + String(r).padStart(2, "0");
+    }
+
+    function updateBackground(url) {
+      const bgVideo = document.getElementById("bgVideo");
+      const bgYouTube = document.getElementById("bgYouTube");
+      const bgPexels = document.getElementById("bgPexels");
+
+      // Normalize YouTube URLs to standard format
+      function normalizeYouTubeUrl(url) {
+        return url
+          .replace("m.youtube.com", "youtube.com")
+          .replace("/shorts/", "/watch?v=");
+      }
+
+      // Helper function to extract YouTube video ID
+      function getYouTubeVideoId(url) {
+        // Normalize URL first
+        url = normalizeYouTubeUrl(url);
+
+        // Handle various YouTube URL formats and extract just the video ID
+        const patterns = [
+          // youtube.com/watch?v=VIDEO_ID (with optional timestamps and other params)
+          /(?:www\.)?(?:m\.)?(?:youtube\.com|youtube-nocookie\.com)\/watch\?.*v=([a-zA-Z0-9_-]{11})/,
+          // youtu.be/VIDEO_ID (with optional timestamps)
+          /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+          // youtube.com/shorts/VIDEO_ID (YouTube Shorts)
+          /(?:www\.)?(?:m\.)?(?:youtube\.com|youtube-nocookie\.com)\/shorts\/([a-zA-Z0-9_-]{11})/,
+          // youtube.com/embed/VIDEO_ID
+          /(?:www\.)?(?:m\.)?(?:youtube\.com|youtube-nocookie\.com)\/embed\/([a-zA-Z0-9_-]{11})/,
+          // youtube.com/v/VIDEO_ID
+          /(?:www\.)?(?:m\.)?(?:youtube\.com|youtube-nocookie\.com)\/v\/([a-zA-Z0-9_-]{11})/
+        ];
+        for (const pattern of patterns) {
+          const match = url.match(pattern);
+          if (match && match[1]) return match[1];
+        }
+        return null;
+      }
+
+      // Helper function to extract Pexels video ID
+      function getPexelsVideoId(url) {
+        // Pexels video URL formats:
+        // https://www.pexels.com/video/mountain-17844810/
+        // https://pexels.com/video/mountain-17844810/
+        // Extract the numeric ID at the end
+        const patterns = [
+          /(?:www\.)?pexels\.com\/video\/[^\/]+-(\d+)\/?/,
+          /(?:www\.)?pexels\.com\/video\/(\d+)\/?/
+        ];
+        for (const pattern of patterns) {
+          const match = url.match(pattern);
+          if (match && match[1]) return match[1];
+        }
+        return null;
+      }
+
+      if (url && typeof url === "string" && url.trim() !== "") {
+        const trimmedUrl = url.trim();
+
+        // Check if it's a Pexels URL (check BEFORE YouTube)
+        const pexelsId = getPexelsVideoId(trimmedUrl);
+        if (pexelsId) {
+          // Hide video and YouTube elements
+          bgVideo.style.opacity = "0";
+          bgYouTube.style.opacity = "0";
+          setTimeout(() => {
+            bgVideo.pause();
+            bgVideo.src = "";
+            bgYouTube.src = "";
+          }, 500);
+
+          // Build Pexels embed URL
+          // Pexels video player embed format with autoplay and loop
+          bgPexels.src = `https://www.pexels.com/video/${pexelsId}/?autoplay=1&loop=1`;
+          bgPexels.style.opacity = "1";
+          document.body.style.backgroundImage = "none";
+
+          console.log(`[Background] Loading Pexels video: ${pexelsId}`);
+          return;
+        }
+
+        // Check if it's a YouTube URL
+        const normalizedUrl = normalizeYouTubeUrl(trimmedUrl);
+        const youtubeId = getYouTubeVideoId(normalizedUrl);
+        if (youtubeId) {
+          // Hide video and Pexels elements
+          bgVideo.style.opacity = "0";
+          bgPexels.style.opacity = "0";
+          setTimeout(() => {
+            bgVideo.pause();
+            bgVideo.src = "";
+            bgPexels.src = "";
+          }, 500);
+
+          // Build YouTube embed URL with safe mode parameters
+          const baseDomain = "https://www.youtube.com";
+          const origin = encodeURIComponent(window.location.origin);
+          const embedParams = [
+            'autoplay=1',
+            'mute=1',
+            'playsinline=1',
+            `origin=${origin}`
+          ].join('&');
+
+          // Use regular youtube.com to avoid CORS issues
+          bgYouTube.src = `${baseDomain}/embed/${youtubeId}?${embedParams}`;
+          bgYouTube.style.opacity = "1";
+          document.body.style.backgroundImage = "none";
+
+          console.log(`[Background] Loading YouTube video: ${youtubeId}`);
+          return;
+        }
+
+        // Check if it's a direct video file
+        const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(trimmedUrl);
+        if (isVideo) {
+          // Hide YouTube and Pexels iframes
+          bgYouTube.style.opacity = "0";
+          bgPexels.style.opacity = "0";
+          setTimeout(() => {
+            bgYouTube.src = "";
+            bgPexels.src = "";
+          }, 500);
+
+          // Show video element
+          bgVideo.src = trimmedUrl;
+          bgVideo.play().catch(e => console.log("[Background] Video play failed:", e));
+          bgVideo.style.opacity = "1";
+          document.body.style.backgroundImage = "none";
+
+          console.log(`[Background] Loading video file: ${trimmedUrl}`);
+          return;
+        }
+
+        // Otherwise treat as static image
+        bgVideo.style.opacity = "0";
+        bgYouTube.style.opacity = "0";
+        bgPexels.style.opacity = "0";
+        setTimeout(() => {
+          bgVideo.pause();
+          bgVideo.src = "";
+          bgYouTube.src = "";
+          bgPexels.src = "";
+        }, 500);
+        document.body.style.backgroundImage = `url("${trimmedUrl}")`;
+        console.log(`[Background] Loading image: ${trimmedUrl}`);
+      } else {
+        // No background
+        bgVideo.style.opacity = "0";
+        bgYouTube.style.opacity = "0";
+        bgPexels.style.opacity = "0";
+        setTimeout(() => {
+          bgVideo.pause();
+          bgVideo.src = "";
+          bgYouTube.src = "";
+          bgPexels.src = "";
+        }, 500);
+        document.body.style.backgroundImage = "none";
+        document.body.style.backgroundColor = "#050811";
+      }
+    }
+
+    function updatePie(remaining, total) {
+      if (total <= 0) {
+        timerPie.style.background = "conic-gradient(var(--primary) 0deg, rgba(255, 255, 255, 0.08) 0deg)";
+        return;
+      }
+      const fraction = Math.max(0, Math.min(1, remaining / total));
+      const angle = (1 - fraction) * 360;
+      const hue = 120 * fraction;
+      const color = `hsl(${hue}, 100%, 50%)`;
+      timerPie.style.background = `conic-gradient(rgba(255, 255, 255, 0.08) 0deg, rgba(255, 255, 255, 0.08) ${angle}deg, ${color} ${angle}deg, ${color} 360deg)`;
+    }
+
+    function triggerMetronomeBeat() {
+      if (!metronomeArm) return;
+      metronomeSide *= -1;
+      const angle = metronomeSide === -1 ? 24 : -24;
+      metronomeArm.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+    }
+
+    function startMetronome(rpm) {
+      stopMetronome();
+      if (!rpm || rpm <= 0) {
+        rpmValue.textContent = "–";
+        return;
+      }
+      rpmValue.textContent = rpm.toString();
+      const intervalMs = (60 * 1000) / rpm;
+      metronomeArm.style.transition = `transform ${intervalMs / 1000}s ease-in-out`;
+      triggerMetronomeBeat();
+      metronomeInterval = setInterval(triggerMetronomeBeat, intervalMs);
+    }
+
+    function stopMetronome() {
+      if (metronomeInterval) {
+        clearInterval(metronomeInterval);
+        metronomeInterval = null;
+      }
+    }
+
+    function clearTimerInterval() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function renderTimeline() {
+      timelineContainer.innerHTML = "";
+      if (!segments.length) return;
+      segments.forEach((seg, index) => {
+        const bar = document.createElement("div");
+        bar.className = "timeline-bar";
+        bar.style.flexGrow = seg.time;
+        let intensity = seg.intensity;
+        if (typeof intensity !== 'number' || isNaN(intensity)) intensity = 0;
+        intensity = Math.max(0, Math.min(20, intensity));
+        bar.style.height = `${intensity * 5}%`;
+        if (intensity === 0) {
+          bar.style.border = "none";
+          bar.style.background = "transparent";
+        }
+        const fill = document.createElement("div");
+        fill.className = "timeline-bar-fill";
+        bar.appendChild(fill);
+        timelineContainer.appendChild(bar);
+      });
+    }
+
+    function updateTimeline(currentIdx, remainingTime, totalDuration) {
+      const bars = timelineContainer.children;
+      if (!bars.length) return;
+      for (let i = 0; i < bars.length; i++) {
+        const bar = bars[i];
+        const fill = bar.querySelector(".timeline-bar-fill");
+        if (i < currentIdx) {
+          // Past segments: enhanced visibility
+          bar.classList.remove("active");
+          fill.style.height = "0%";
+          bar.style.opacity = "1";
+          bar.style.borderWidth = "2px";
+          bar.style.borderColor = "rgba(255, 255, 255, 0.4)";
+          bar.style.background = "rgba(255, 255, 255, 0.08)";
+        } else if (i === currentIdx) {
+          bar.classList.add("active");
+          bar.style.opacity = "1";
+          bar.style.borderWidth = "1px";
+          bar.style.background = "rgba(255,255,255,0.05)";
+          const fraction = Math.max(0, Math.min(1, remainingTime / totalDuration));
+          fill.style.height = `${fraction * 100}%`;
+        } else {
+          bar.classList.remove("active");
+          fill.style.height = "100%";
+          bar.style.opacity = "0.6";
+          bar.style.borderWidth = "1px";
+          bar.style.background = "rgba(255,255,255,0.05)";
+        }
+      }
+    }
+
+    function loadSegment(index) {
+      if (!segments.length) return;
+      if (index < 0 || index >= segments.length) {
+        clearTimerInterval();
+        stopMetronome();
+        isRunning = false;
+        startBtn.disabled = false;
+        pauseBtn.disabled = true;
+        statusText.textContent = "Session finished.";
+        timeDisplay.textContent = "00:00";
+        segmentInfo.textContent = "Done!";
+        segmentProgress.textContent = "";
+        nextActivity.textContent = "";
+        updatePie(0, 1);
+        Array.from(timelineContainer.children).forEach(b => {
+          b.classList.remove("active");
+          b.querySelector(".timeline-bar-fill").style.height = "0%";
+          b.style.opacity = "1";
+          b.style.borderWidth = "2px";
+          b.style.borderColor = "rgba(255, 255, 255, 0.4)";
+          b.style.background = "rgba(255, 255, 255, 0.08)";
+        });
+        return;
+      }
+
+      currentIndex = index;
+      const seg = segments[currentIndex];
+      segmentDuration = seg.time;
+
+      if (isRunning) {
+        segmentStartTime = Date.now();
+      }
+
+      updateBackground(seg.background);
+      timeDisplay.textContent = formatTime(segmentDuration);
+      segmentInfo.textContent = seg.activity || "(No activity name)";
+      segmentProgress.textContent = `Segment ${currentIndex + 1} of ${segments.length} · ${segmentDuration}s`;
+
+      if (currentIndex + 1 < segments.length) {
+        const nextSeg = segments[currentIndex + 1];
+        nextActivity.textContent = `Next: ${nextSeg.activity || "Untitled"}`;
+      } else {
+        nextActivity.textContent = "Next: Finish";
+      }
+
+      updatePie(segmentDuration, segmentDuration);
+      startMetronome(seg.rpm);
+      updateTimeline(currentIndex, segmentDuration, segmentDuration);
+    }
+
+    function startTimerLoop() {
+      clearTimerInterval();
+      timerInterval = setInterval(() => {
+        if (!isRunning || !segments.length) return;
+        const now = Date.now();
+        const elapsed = (now - segmentStartTime) / 1000;
+        const remaining = segmentDuration - elapsed;
+        if (remaining <= 0) {
+          loadSegment(currentIndex + 1);
+        } else {
+          timeDisplay.textContent = formatTime(remaining);
+          updatePie(remaining, segmentDuration);
+          updateTimeline(currentIndex, remaining, segmentDuration);
+        }
+      }, 100);
+    }
+
+    function resetSession() {
+      isRunning = false;
+      clearTimerInterval();
+      stopMetronome();
+      segmentStartTime = null;
+      currentIndex = 0;
+      if (segments.length) {
+        loadSegment(0);
+        timeDisplay.textContent = formatTime(segmentDuration);
+        updatePie(segmentDuration, segmentDuration);
+        segmentProgress.textContent = `Segment 1 of ${segments.length} · ${segmentDuration}s`;
+        statusText.textContent = "Reset. Ready to start.";
+        renderTimeline();
+        updateTimeline(0, segmentDuration, segmentDuration);
+      } else {
+        timeDisplay.textContent = "00:00";
+        segmentInfo.textContent = "Waiting for session data…";
+        segmentProgress.textContent = "";
+        nextActivity.textContent = "";
+        statusText.textContent = "Load Excel with columns: Time, Activity, RPM, Background";
+        timelineContainer.innerHTML = "";
+      }
+      startBtn.disabled = !segments.length;
+      pauseBtn.disabled = true;
+      resetBtn.disabled = !segments.length;
+    }
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const data = evt.target.result;
+          const workbook = XLSX.read(data, { type: "array" });
+          const firstSheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[firstSheetName];
+          const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+          const parsed = rows.map((row, i) => {
+            const timeRaw = row["Time"] ?? row["Time (seconds)"] ?? row["time"] ?? row["TIME"];
+            const rpmRaw = row["RPM"] ?? row["rpm"] ?? row["Cadence"] ?? row["cadence"] ?? row["BPM"] ?? row["bpm"];
+            const activity = row["Activity"] ?? row["activity"] ?? "";
+            const background = row["Background"] ?? row["background"] ?? "";
+            const intensityRaw = row["Intensity"] ?? row["intensity"] ?? row["Level"] ?? row["level"] ?? row["Height"] ?? row["height"];
+            const time = Number(timeRaw);
+            const rpm = Number(rpmRaw);
+            const intensity = Number(intensityRaw);
+            return {
+              time: isFinite(time) && time > 0 ? time : 0,
+              activity: String(activity),
+              rpm: isFinite(rpm) && rpm > 0 ? Math.round(rpm) : 0,
+              background: String(background),
+              intensity: isFinite(intensity) ? intensity : 0
+            };
+          }).filter(seg => seg.time > 0);
+          if (!parsed.length) {
+            throw new Error("No valid rows with positive Time found.");
+          }
+          segments = parsed;
+          statusText.textContent = `Loaded ${segments.length} segments from Excel.`;
+          startBtn.disabled = false;
+          pauseBtn.disabled = true;
+          resetBtn.disabled = false;
+          isRunning = false;
+          clearTimerInterval();
+          stopMetronome();
+          segmentStartTime = null;
+          renderTimeline();
+          loadSegment(0);
+          timeDisplay.textContent = formatTime(segmentDuration);
+          updatePie(segmentDuration, segmentDuration);
+        } catch (err) {
+          console.error(err);
+          statusText.textContent = "Error reading Excel. Check column names and file format.";
+          segments = [];
+          resetSession();
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    startBtn.addEventListener("click", () => {
+      if (!segments.length) return;
+      if (isRunning) return;
+      const delaySec = parseInt(startDelaySelect.value, 10);
+      if (delaySec > 0 && segmentStartTime === null) {
+        let count = delaySec;
+        countdownOverlay.classList.add("active");
+        countdownText.textContent = count;
+        statusText.textContent = `Starting in ${count}...`;
+        const interval = setInterval(() => {
+          count--;
+          if (count > 0) {
+            countdownText.textContent = count;
+            statusText.textContent = `Starting in ${count}...`;
+          } else {
+            clearInterval(interval);
+            countdownOverlay.classList.remove("active");
+            beginSession();
+          }
+        }, 1000);
+      } else {
+        beginSession();
+      }
+    });
+
+    function beginSession() {
+      isRunning = true;
+      startBtn.disabled = true;
+      pauseBtn.disabled = false;
+      statusText.textContent = "Running...";
+      if (pausedTime) {
+        const pauseDuration = Date.now() - pausedTime;
+        segmentStartTime += pauseDuration;
+        pausedTime = null;
+      } else {
+        segmentStartTime = Date.now();
+      }
+      startTimerLoop();
+      startMetronome(segments[currentIndex].rpm);
+    }
+
+    pauseBtn.addEventListener("click", () => {
+      if (!isRunning) return;
+      isRunning = false;
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+      statusText.textContent = "Paused.";
+      pausedTime = Date.now();
+      clearTimerInterval();
+      stopMetronome();
+    });
+
+    resetBtn.addEventListener("click", () => {
+      resetSession();
+    });
+  </script>
+</body>
+
+</html>
