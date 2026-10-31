@@ -940,8 +940,7 @@
 
       updateBackground(seg.background);
       timeDisplay.textContent = formatTime(segmentDuration);
-      const currentActivity = seg.activity || "(No activity name)";
-      segmentInfo.textContent = `${currentActivity} · FTP: ${seg.intensity}%`;
+      segmentInfo.textContent = `FTP: ${seg.intensity}%`;
       segmentProgress.textContent = `Segment ${currentIndex + 1} of ${segments.length} · ${segmentDuration}s`;
 
       if (currentIndex + 1 < segments.length) {
