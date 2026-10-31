@@ -405,7 +405,7 @@
       left: 50%;
       transform: translateX(-50%);
       width: 60%;
-      height: 570px;
+      height: calc(var(--timeline-height, 210px) + 20px);
       display: flex;
       align-items: flex-end;
       padding: 0 20px 20px 20px;
@@ -419,7 +419,7 @@
       left: calc(20% - 100px);
       bottom: 20px;
       width: 100px;
-      height: 550px;
+      height: var(--timeline-height, 210px);
       z-index: 18;
       pointer-events: none;
       font-size: 20px;
@@ -430,7 +430,7 @@
     #timelineScale .scale-title {
       position: absolute;
       font-size: 20px;
-      bottom: calc(100% + 30px);
+      bottom: calc(100% + 14px);
       left: 0;
       white-space: nowrap;
     }
@@ -552,29 +552,16 @@
     <div id="countdownText"></div>
   </div>
 
-  <div id="timelineScale" aria-label="FTP (%) scale from 50 to 150 in steps of 5; values below 50 use a compressed baseline">
+  <div id="timelineScale" aria-label="FTP (%) scale from 0 to 140 in steps of 20">
     <span class="scale-title">FTP (%)</span>
-    <span class="scale-mark" style="bottom:100.000000%">150</span>
-    <span class="scale-mark" style="bottom:95.272727%">145</span>
-    <span class="scale-mark" style="bottom:90.545455%">140</span>
-    <span class="scale-mark" style="bottom:85.818182%">135</span>
-    <span class="scale-mark" style="bottom:81.090909%">130</span>
-    <span class="scale-mark" style="bottom:76.363636%">125</span>
-    <span class="scale-mark" style="bottom:71.636364%">120</span>
-    <span class="scale-mark" style="bottom:66.909091%">115</span>
-    <span class="scale-mark" style="bottom:62.181818%">110</span>
-    <span class="scale-mark" style="bottom:57.454545%">105</span>
-    <span class="scale-mark" style="bottom:52.727273%">100</span>
-    <span class="scale-mark" style="bottom:48.000000%">95</span>
-    <span class="scale-mark" style="bottom:43.272727%">90</span>
-    <span class="scale-mark" style="bottom:38.545455%">85</span>
-    <span class="scale-mark" style="bottom:33.818182%">80</span>
-    <span class="scale-mark" style="bottom:29.090909%">75</span>
-    <span class="scale-mark" style="bottom:24.363636%">70</span>
-    <span class="scale-mark" style="bottom:19.636364%">65</span>
-    <span class="scale-mark" style="bottom:14.909091%">60</span>
-    <span class="scale-mark" style="bottom:10.181818%">55</span>
-    <span class="scale-mark" style="bottom:5.454545%">50</span>
+    <span class="scale-mark" style="bottom:100%">140</span>
+    <span class="scale-mark" style="bottom:85.71428571428571%">120</span>
+    <span class="scale-mark" style="bottom:71.42857142857143%">100</span>
+    <span class="scale-mark" style="bottom:57.14285714285714%">80</span>
+    <span class="scale-mark" style="bottom:42.857142857142854%">60</span>
+    <span class="scale-mark" style="bottom:28.57142857142857%">40</span>
+    <span class="scale-mark" style="bottom:14.285714285714285%">20</span>
+    <span class="scale-mark" style="bottom:0%">0</span>
   </div>
   <div id="timelineContainer"></div>
 
@@ -846,6 +833,25 @@
       }
     }
 
+    // Keep the chart and its legend below both instrument groups.
+    function layoutTimeline() {
+      const timerBottom = document.getElementById("timerContainer").getBoundingClientRect().bottom;
+      const metronomeBottom = document.getElementById("metronomeContainer").getBoundingClientRect().bottom;
+      const chartBottomInset = 20;
+      const legendSpace = 44;
+      const gap = 16;
+      const availableHeight = window.innerHeight - Math.max(timerBottom, metronomeBottom)
+        - chartBottomInset - legendSpace - gap;
+      const height = Math.max(0, Math.min(260, availableHeight));
+      document.documentElement.style.setProperty("--timeline-height", height + "px");
+    }
+
+    const timelineLayoutObserver = new ResizeObserver(layoutTimeline);
+    timelineLayoutObserver.observe(document.getElementById("timerContainer"));
+    timelineLayoutObserver.observe(document.getElementById("metronomeContainer"));
+    window.addEventListener("resize", layoutTimeline);
+    layoutTimeline();
+
     function renderTimeline() {
       timelineContainer.innerHTML = "";
       if (!segments.length) return;
@@ -855,12 +861,8 @@
         bar.style.flexGrow = seg.time;
         let intensity = seg.intensity;
         if (typeof intensity !== 'number' || isNaN(intensity)) intensity = 0;
-        intensity = Math.max(0, Math.min(150, intensity));
-        // Reserve 30px below 50 FTP; each 5-point step above 50 gets 26px.
-        const barHeight = intensity <= 50
-          ? (intensity / 50) * 30
-          : 30 + (intensity - 50) * 5.2;
-        bar.style.height = `${(barHeight / 550) * 100}%`;
+        intensity = Math.max(0, Math.min(140, intensity));
+        bar.style.height = `${(intensity / 140) * 100}%`;
         if (intensity === 0) {
           bar.style.border = "none";
           bar.style.background = "transparent";
