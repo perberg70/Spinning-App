@@ -176,12 +176,10 @@
     }
 
     #segmentInfo, #rpmLabel {
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: var(--metric-font-size);
-      white-space: nowrap;
+      font-weight: 600;
+      color: var(--primary);
+      line-height: 1.2;
+      text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
     }
 
     #segmentInfo {
@@ -284,10 +282,12 @@
     }
 
     #rpmLabel {
-      /* Compensate for the metronome group's 1.2 scale to match FTP visually. */
-      font-size: calc(var(--metric-font-size) / 1.2);
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: var(--metric-font-size);
       white-space: nowrap;
-      margin-top: 6px;
     }
 
     #backgroundOverlay {
