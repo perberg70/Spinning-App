@@ -176,10 +176,12 @@
     }
 
     #segmentInfo, #rpmLabel {
-      font-weight: 600;
-      color: var(--primary);
-      line-height: 1.2;
-      text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: var(--metric-font-size);
+      white-space: nowrap;
     }
 
     #segmentInfo {
@@ -204,20 +206,20 @@
     #metronomeContainer {
       position: fixed;
       left: 180px;
-      bottom: 300px;
-      transform: scale(1.2);
-      transform-origin: bottom center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
+      top: 82.5px;
+      width: 180px;
+      height: 376.5px;
       z-index: 15;
     }
 
     #metronomeVisual {
       width: 180px;
       height: 340px;
-      position: relative;
+      position: absolute;
+      top: calc(-30px * var(--metronome-scale, 1));
+      left: 0;
+      transform: scale(var(--metronome-scale, 1));
+      transform-origin: top center;
       overflow: visible;
     }
 
@@ -834,6 +836,13 @@
 
     // Keep the chart and its legend below both instrument groups.
     function layoutTimeline() {
+      const pieBounds = timerPie.getBoundingClientRect();
+      const effortBounds = segmentInfo.getBoundingClientRect();
+      const metronome = document.getElementById("metronomeContainer");
+      // The drawn metronome runs from its tip at y=30 to its pivot bottom at y=318.
+      metronome.style.top = pieBounds.top + "px";
+      metronome.style.height = (effortBounds.bottom - pieBounds.top) + "px";
+      metronome.style.setProperty("--metronome-scale", pieBounds.height / 288);
       const timerBottom = document.getElementById("timerContainer").getBoundingClientRect().bottom;
       const metronomeBottom = document.getElementById("metronomeContainer").getBoundingClientRect().bottom;
       const chartBottomInset = 20;
@@ -847,7 +856,8 @@
 
     const timelineLayoutObserver = new ResizeObserver(layoutTimeline);
     timelineLayoutObserver.observe(document.getElementById("timerContainer"));
-    timelineLayoutObserver.observe(document.getElementById("metronomeContainer"));
+    timelineLayoutObserver.observe(timerPie);
+    timelineLayoutObserver.observe(segmentInfo);
     window.addEventListener("resize", layoutTimeline);
     layoutTimeline();
 
