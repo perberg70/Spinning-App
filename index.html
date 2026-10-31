@@ -404,13 +404,13 @@
     #timelineContainer {
       position: fixed;
       bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 60%;
+      left: calc(var(--timeline-margin, 145px) + 64px);
+      right: var(--timeline-margin, 145px);
+      width: auto;
       height: calc(var(--timeline-height, 210px) + 20px);
       display: flex;
       align-items: flex-end;
-      padding: 0 20px 20px 20px;
+      padding: 0 0 20px;
       gap: 4px;
       z-index: 18;
       pointer-events: none;
@@ -418,9 +418,9 @@
 
     #timelineScale {
       position: fixed;
-      left: calc(20% - 100px);
+      left: var(--timeline-margin, 145px);
       bottom: 20px;
-      width: 100px;
+      width: 52px;
       height: var(--timeline-height, 210px);
       z-index: 18;
       pointer-events: none;
@@ -843,6 +843,10 @@
       metronome.style.top = pieBounds.top + "px";
       metronome.style.height = (effortBounds.bottom - pieBounds.top) + "px";
       metronome.style.setProperty("--metronome-scale", pieBounds.height / 288);
+      // Align the chart (including its scale) with the metronome base,
+      // and mirror that outer margin at the right edge of the viewport.
+      const metronomeLeft = document.getElementById("metronomeBody").getBoundingClientRect().left;
+      document.documentElement.style.setProperty("--timeline-margin", Math.max(16, metronomeLeft) + "px");
       const timerBottom = document.getElementById("timerContainer").getBoundingClientRect().bottom;
       const metronomeBottom = document.getElementById("metronomeContainer").getBoundingClientRect().bottom;
       const chartBottomInset = 20;
